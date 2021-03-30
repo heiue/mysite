@@ -19,11 +19,13 @@ class BaseModel(object):
             passwd=db_config.get('PASSWORD'),
             database=db_config.get('NAME'))
 
-    def get_all(self):
-        data_dict = []
+    def get_all(self, str_where="", order_by=None, limit=0):
         cursor = self.db.cursor(cursor=pymysql.cursors.DictCursor)
+        sql = "select * from " + self.table_name + " where 1=1 {str_where} ".format(str_where=str_where)
+        if order_by:
+            sql += " order by " + order_by['field'] + " " + order_by['order']
         if self.table_name:
-            cursor.execute("select * from " + self.table_name + " where 1=1 and id < 10")
+            cursor.execute(sql)
             data_dict = cursor.fetchall()
             # print(data_dict)
         else:

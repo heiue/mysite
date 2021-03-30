@@ -11,10 +11,10 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+import time
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -34,7 +34,6 @@ CORS_ORIGIN_WHITELIST = (
     # 允许跨域访问的白名单
     "http://localhost:8080",
 )
-
 
 # Application definition
 
@@ -59,6 +58,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+
+    # 自定义
+    'lib.log.RequestIDMiddleware'
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -80,7 +82,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -108,7 +109,6 @@ else:
         }
     }
 
-
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 
@@ -127,7 +127,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
@@ -142,8 +141,74 @@ USE_L10N = True
 
 USE_TZ = False
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+LOGS_DIR = BASE_DIR + '/mysite/logs'
+if not os.path.exists(LOGS_DIR):
+    os.mkdir(LOGS_DIR)
+
+LOGGING = {
+    # 版本
+    'version': 1,
+    # 是否禁止默认配置的记录器
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s][%(processName)s:%(process)d][%(threadName)s:%(thread)d][trace_id:%(request_id)s][task_id:%(name)s][%(filename)s:%(lineno)d]'
+                      '[%(levelname)s][%(message)s]',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        }
+    },
+    # 过滤器
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue'
+        },
+        'request_id': {
+            '()': 'lib.log.RequestIDFilter'
+        }
+    },
+    'handlers': {
+        # 在终端打印
+        'console': {
+            'level': 'WARNING',
+            'filters': ['require_debug_true'],  # 只有在Django debug为True时才在屏幕打印日志
+            'class': 'logging.StreamHandler',  #
+            'formatter': 'standard'
+        },
+        # 默认的
+        'default': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.TimedRotatingFileHandler',  # 保存到文件，自动切
+            'filename': os.path.join(LOGS_DIR, "web-log.log"),  # 日志文件
+            'filters': ['request_id'],
+            # 'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
+            'when': 'D',  # 每天切割一次日志
+            'interval': 1,  # 时间间隔
+            'backupCount': 5,  # 最多备份几个
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+        # 专门用来记错误日志
+        'error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
+            'filename': os.path.join(LOGS_DIR, "error-log.log"),  # 日志文件
+            'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        }
+    },
+    'loggers': {
+        # 默认的logger应用如下配置
+        '': {
+            'handlers': ['default', 'console', 'error'],  # 上线之后可以把'console'移除
+            'level': 'DEBUG',
+            'propagate': True,  # 向不向更高级别的logger传递
+        }
+    }
+}

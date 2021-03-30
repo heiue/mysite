@@ -10,6 +10,9 @@ from api.models import SaasScPoster, ChUser
 from api.basemodels.SaasPoster import SaasPoster
 from django.conf import settings
 from django.db.models import Count
+import logging
+from django.utils import timezone
+
 
 
 def hello(request):
@@ -21,6 +24,9 @@ def hello(request):
 
 # Django自带的数据库操作
 def list(request):
+    logger = logging.getLogger(__name__)
+    logger.error('aaaaaaaa')
+    logger.info('bbbbb')
     # ch_user 新增一条
     # user = ChUser(name='weiyizheng', phone='13521282025')
     # user.save()
@@ -39,7 +45,7 @@ def list(request):
     # user = ChUser.objects.get(id=1)
     # user.delete()
 
-    ChUser.objects.filter(id=2).delete()
+    # ChUser.objects.filter(id=2).delete()
 
     """ 获取一条 """
     one = ChUser.objects.get(id=3)
@@ -55,13 +61,23 @@ def list(request):
     # print(lists)
 
     """ 聚合 """
-    count = ChUser.objects.aggregate(Count('id'))
+    count = ChUser.objects.count()
     print(count)
+
+    list3 = ChUser.objects.filter(id=5).values()
+    print(list3)
+
+    time = timezone.now().strftime("%Y-%m-%d")
+    print(time)
     return HttpResponse(json.dumps(data))
 
 
 def list2(request):
     data = {}
-    lists = SaasPoster().get_all()
+    strWhere = " and id < 10"
+    lists = SaasPoster().get_all(strWhere)
     data['list'] = lists
+
+    """ 联表 """
+
     return HttpResponse(json.dumps(data))

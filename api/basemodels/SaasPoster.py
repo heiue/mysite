@@ -4,7 +4,7 @@
 # @Author : weiyizheng
 # @File : SaasPoster.py
 # @desc :
-from api.basemodels.BaseModel import BaseModel
+from mysite.BaseModel import BaseModel
 
 
 class SaasPoster(BaseModel):
